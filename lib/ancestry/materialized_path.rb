@@ -30,11 +30,15 @@ module Ancestry
     def descendant_conditions(object)
       t = arel_table
       node = to_node(object)
-      # rails has case sensitive matching.
-      if ActiveRecord::VERSION::MAJOR >= 5
-        t[ancestry_column].matches("#{node.child_ancestry}/%", nil, true).or(t[ancestry_column].eq(node.child_ancestry))
+      if node.ancestry_base_class.max_depth.nil?
+        # rails has case sensitive matching.
+        if ActiveRecord::VERSION::MAJOR >= 5
+          t[ancestry_column].matches("#{node.child_ancestry}/%", nil, true).or(t[ancestry_column].eq(node.child_ancestry))
+        else
+          t[ancestry_column].matches("#{node.child_ancestry}/%").or(t[ancestry_column].eq(node.child_ancestry))
+        end
       else
-        t[ancestry_column].matches("#{node.child_ancestry}/%").or(t[ancestry_column].eq(node.child_ancestry))
+        t[ancestry_column].matches("#{node.id}/%").or(t[ancestry_column].matches("%/#{node.id}/%")).or(t[ancestry_column].eq(node.child_ancestry))
       end
     end
 

@@ -133,6 +133,12 @@ The has_ancestry methods supports the following options:
                            By default, primary keys only match integers ([0-9]+).
     :touch                 Instruct Ancestry to touch the ancestors of a node when it changes, to
                            invalidate nested key-based caches. (default: false)
+    :max_depth             Instruct Ancestry tp keep track of relationships up to this value only. For
+                           example, if the value is 3 (three), Ancestry will keep track only up to the
+                           third ancestor, which will be the root of the tree. As a consequence, descendants
+                           will be symmetrically at most three levels deep. This is useful for keeping track
+                           of subtrees if the actual tree can be arbitrarily deep (and if you don't want to
+                           use a TEXT field for the ancestry column with its performance hit).
 
 # (Named) Scopes
 
@@ -386,8 +392,10 @@ bundle
 appraisal install
 # all tests
 appraisal rake test
-# single test version (sqlite and rails 5.0)
+# single test file version (sqlite and rails 5.0)
 appraisal sqlite3-ar-50 rake test
+# single test version (sqlite and rails 5.1)
+appraisal sqlite3-ar-51 ruby -I test test/concerns/max_depth_test.rb -n "test_root_with_max_depth_reversed"
 ```
 
 # Internals

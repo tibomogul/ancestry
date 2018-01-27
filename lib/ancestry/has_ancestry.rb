@@ -4,7 +4,7 @@ module Ancestry
       # Check options
       raise Ancestry::AncestryException.new("Options for has_ancestry must be in a hash.") unless options.is_a? Hash
       options.each do |key, value|
-        unless [:ancestry_column, :orphan_strategy, :cache_depth, :depth_cache_column, :touch].include? key
+        unless [:ancestry_column, :orphan_strategy, :cache_depth, :depth_cache_column, :touch, :max_depth].include? key
           raise Ancestry::AncestryException.new("Unknown option for has_ancestry: #{key.inspect} => #{value.inspect}.")
         end
       end
@@ -21,6 +21,13 @@ module Ancestry
       # Touch ancestors after updating
       cattr_accessor :touch_ancestors
       self.touch_ancestors = options[:touch] || false
+
+      # Maximum depth
+      cattr_accessor :max_depth
+      self.max_depth = options[:max_depth]
+      unless self.max_depth.nil?
+        raise Ancestry::AncestryException.new("Invalid value for has_ancestry: max_depth => #{self.max_depth}") if !self.max_depth.is_a?(Numeric) || self.max_depth <= 1
+      end
 
       # Include instance methods
       include Ancestry::InstanceMethods

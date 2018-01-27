@@ -29,6 +29,12 @@ class HasAncestryTreeTest < ActiveSupport::TestCase
     assert_raise Ancestry::AncestryException do
       Class.new(ActiveRecord::Base).has_ancestry :not_a_hash
     end
+    assert_raise Ancestry::AncestryException do
+      Class.new(ActiveRecord::Base).has_ancestry :max_depth => 1
+    end
+    assert_raise Ancestry::AncestryException do
+      Class.new(ActiveRecord::Base).has_ancestry :max_depth => 'shallow'
+    end
   end
 
   def test_descendants_move_with_node

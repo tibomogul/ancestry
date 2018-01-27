@@ -13,13 +13,15 @@ module Ancestry
         unscoped_descendants.each do |descendant|
           # ... replace old ancestry with new ancestry
           descendant.without_ancestry_callbacks do
-            descendant.update_attribute(
-              self.ancestry_base_class.ancestry_column,
-              descendant.read_attribute(descendant.class.ancestry_column).gsub(
-                /^#{self.child_ancestry}/,
-                if ancestors? then "#{read_attribute self.class.ancestry_column }/#{id}" else id.to_s end
-              )
-            )
+            current_ancestry = descendant.read_attribute(descendant.class.ancestry_column)
+            current_ancestry.gsub!(/^#{self.child_ancestry}/, ancestors? ? "#{read_attribute self.class.ancestry_column }/#{id}" : id.to_s)
+            if !self.ancestry_base_class.max_depth.nil?
+              aids = parse_ancestry_column(current_ancestry)
+              if aids.count >= self.ancestry_base_class.max_depth
+                current_ancestry = aids[-(self.ancestry_base_class.max_depth), self.ancestry_base_class.max_depth].join('/')
+              end
+            end
+            descendant.update_attribute(self.ancestry_base_class.ancestry_column, current_ancestry)
           end
         end
       end
@@ -78,7 +80,21 @@ module Ancestry
       # New records cannot have children
       raise Ancestry::AncestryException.new('No child ancestry for new record. Save record before performing tree operations.') if new_record?
 
-      if self.send("#{self.ancestry_base_class.ancestry_column}_was").blank? then id.to_s else "#{self.send "#{self.ancestry_base_class.ancestry_column}_was"}/#{id}" end
+      was = self.send "#{self.ancestry_base_class.ancestry_column}_was"
+      if was.blank?
+        id.to_s
+      else
+        if self.ancestry_base_class.max_depth.nil?
+          "#{was}/#{id}"
+        else
+          aids = parse_ancestry_column(was)
+          if aids.count < self.ancestry_base_class.max_depth
+            "#{was}/#{id}"
+          else
+            "#{aids[-(self.ancestry_base_class.max_depth-1), self.ancestry_base_class.max_depth-1].join('/')}/#{id}"
+          end
+        end
+      end
     end
 
     # Ancestors
@@ -132,7 +148,7 @@ module Ancestry
     end
 
     def path depth_options = {}
-      self.ancestry_base_class.scope_depth(depth_options, depth).ordered_by_ancestry.where path_conditions
+      self.ancestry_base_class.ordered_by_ancestry.scope_depth(depth_options, depth).where path_conditions
     end
 
     def depth
